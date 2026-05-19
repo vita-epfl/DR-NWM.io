@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drift-Resistant Navigation World Model</title>
+  <meta name="description" content="Project page for Drift-Resistant Navigation World Model with Anchored Epipolar Guidance.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --paper: #ffffff;
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d8dee8;
+      --line-strong: #b8c2d0;
+      --teal: #0f766e;
+      --teal-soft: #e5f4f1;
+      --blue: #2563eb;
+      --blue-soft: #eaf1ff;
+      --red: #c42b2b;
+      --red-soft: #fdecec;
+      --shadow: 0 18px 48px rgba(17, 24, 39, 0.1);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .wrap {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(216, 222, 232, 0.92);
+      background: rgba(247, 248, 250, 0.93);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 12px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 100px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+      padding: 8px 10px;
+      transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      border-color: var(--line);
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .hero {
+      padding: 56px 0 28px;
+      text-align: center;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+      padding: 9px 12px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .hero-title {
+      display: grid;
+      grid-template-columns: minmax(140px, 210px) minmax(0, 1fr);
+      align-items: center;
+      gap: 28px;
+      max-width: 1060px;
+      margin: 18px auto 0;
+      text-align: left;
+    }
+
+    .hero-logo {
+      width: 100%;
+      height: auto;
+      border-radius: var(--radius);
+      box-shadow: 0 14px 38px rgba(17, 24, 39, 0.13);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 860px;
+      margin: 0;
+      font-size: 54px;
+      line-height: 1.02;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .subtitle {
+      max-width: 780px;
+      margin: 18px auto 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .authors {
+      display: flex;
+      justify-content: center;
+      gap: 10px 20px;
+      flex-wrap: wrap;
+      max-width: 950px;
+      margin: 20px auto 0;
+      font-size: 15px;
+    }
+
+    .authors a {
+      border-bottom: 1px solid transparent;
+      transition: color 160ms ease, border-color 160ms ease;
+    }
+
+    .authors a:hover {
+      color: var(--teal);
+      border-color: var(--teal);
+    }
+
+    .affiliation {
+      margin-top: 6px;
+      color: #c1121f;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1;
+      padding: 10px 14px;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .action:hover {
+      border-color: var(--teal);
+      box-shadow: 0 8px 24px rgba(15, 118, 110, 0.13);
+      transform: translateY(-1px);
+    }
+
+    .action.primary {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .action.disabled {
+      cursor: default;
+      color: #7a8493;
+      background: #eef1f5;
+      border-color: #dfe5ed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .section {
+      scroll-margin-top: 82px;
+      padding: 48px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    h2 {
+      font-size: 32px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .abstract-text {
+      max-width: 900px;
+      margin: 0 auto;
+      color: #273142;
+      font-size: 16px;
+      line-height: 1.68;
+    }
+
+    #abstract .section-head {
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .gallery-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .gallery-meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dataset-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .dataset-nav button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      line-height: 1;
+      padding: 9px 12px;
+      transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+    }
+
+    .dataset-nav button:hover,
+    .dataset-nav button.active {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+      padding: 8px 10px;
+      white-space: normal;
+    }
+
+    .legend .baseline {
+      border-color: rgba(196, 43, 43, 0.25);
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .legend .ours {
+      border-color: rgba(15, 118, 110, 0.25);
+      background: var(--teal-soft);
+      color: var(--teal);
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .sample-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 8px 22px rgba(17, 24, 39, 0.06);
+    }
+
+    .sample-card:hover {
+      border-color: rgba(15, 118, 110, 0.38);
+      box-shadow: var(--shadow);
+    }
+
+    .sample-media {
+      position: relative;
+      display: block;
+      background: #0e1110;
+    }
+
+    .scrub-frame {
+      width: 100%;
+      aspect-ratio: 2 / 1;
+      background: #0e1110;
+      background-repeat: no-repeat;
+      background-size: 800% 800%;
+      background-position: 0% 0%;
+    }
+
+    .split-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+      pointer-events: none;
+    }
+
+    .side-labels {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .side-labels span {
+      width: max-content;
+      max-width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      border-radius: 999px;
+      background: rgba(14, 17, 16, 0.72);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1;
+      padding: 7px 9px;
+    }
+
+    .side-labels span:last-child {
+      justify-self: end;
+    }
+
+    .scrub-controls {
+      display: grid;
+      grid-template-columns: auto auto auto auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid var(--line);
+      background: var(--paper);
+      padding: 10px 12px;
+    }
+
+    .scrub-button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f8fafc;
+      color: var(--ink);
+      font: inherit;
+      font-size: 12px;
+      line-height: 1;
+      padding: 7px 9px;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .scrub-button:hover {
+      border-color: var(--teal);
+      background: var(--teal-soft);
+    }
+
+    .scrub-label,
+    .time-readout {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .time-readout {
+      font-variant-numeric: tabular-nums;
+      min-width: 42px;
+      text-align: right;
+    }
+
+    .scrub-slider {
+      width: 100%;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    .sample-caption {
+      padding: 12px;
+    }
+
+    .sample-title {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .sample-title strong {
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .sample-title span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.96em;
+    }
+
+    @media (max-width: 980px) {
+      h1 {
+        font-size: 42px;
+      }
+
+      .section-head,
+      .gallery-head {
+        grid-template-columns: 1fr;
+      }
+
+      .dataset-nav {
+        justify-content: flex-start;
+      }
+
+      .sample-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .hero {
+        padding-top: 34px;
+      }
+
+      .hero-title {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        text-align: center;
+      }
+
+      .hero-logo {
+        width: min(180px, 54vw);
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .wrap,
+      .topbar-inner {
+        width: 100%;
+        max-width: 100vw;
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      h1 {
+        font-size: 32px;
+        line-height: 1.08;
+      }
+
+      h2 {
+        font-size: 25px;
+      }
+
+      .subtitle {
+        font-size: 16px;
+      }
+
+      .authors {
+        align-items: center;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .section {
+        padding: 38px 0;
+      }
+
+      .sample-grid {
+        grid-template-columns: 1fr;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .sample-card {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .scrub-controls {
+        grid-template-columns: auto auto auto;
+      }
+
+      .scrub-label,
+      .scrub-slider,
+      .time-readout {
+        grid-column: 1 / -1;
+      }
+
+      .side-labels {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+      }
+
+      .side-labels span {
+        font-size: 11px;
+        padding: 6px 7px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top" aria-label="Back to top">
+        <span>DR-NWM</span>
+      </a>
+      <nav class="nav" aria-label="Project navigation">
+        <a href="#abstract">Abstract</a>
+        <a href="#videos">Videos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero wrap" aria-labelledby="page-title">
+      <span class="kicker"><span class="dot" aria-hidden="true"></span>Project page</span>
+      <div class="hero-title">
+        <img class="hero-logo" src="logo.png" alt="Drift-Resistant Navigation World Model logo">
+        <h1 id="page-title">Drift-Resistant Navigation World Model with Anchored Epipolar Guidance</h1>
+      </div>
+      <p class="subtitle">
+        A navigation world model that uses sparse future anchors and bidirectional epipolar guidance to reduce perceptual and geometric drift during long-horizon rollouts.
+      </p>
+      <div class="authors" aria-label="Authors">
+        <a href="https://scholar.google.com/citations?user=Y2Oth4MAAAAJ&amp;hl=en" target="_blank" rel="noopener noreferrer">Po-Chien Luan</a>
+        <a href="https://ziminxia.github.io/" target="_blank" rel="noopener noreferrer">Zimin Xia</a>
+        <a href="https://wymancv.github.io/wuyang.github.io/" target="_blank" rel="noopener noreferrer">Wuyang Li</a>
+        <a href="https://scholar.google.com/citations?user=rpT0Q6AAAAAJ&amp;hl=en" target="_blank" rel="noopener noreferrer">Yang Gao</a>
+        <a href="https://scholar.google.com/citations?user=UIhXQ64AAAAJ&amp;hl=en" target="_blank" rel="noopener noreferrer">Alexandre Alahi</a>
+      </div>
+      <p class="affiliation">VITA, EPFL</p>
+      <div class="actions" aria-label="Page shortcuts">
+        <span class="action disabled">Paper coming soon</span>
+        <span class="action disabled">Code coming soon</span>
+      </div>
+    </section>
+
+    <section id="abstract" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>Abstract</h2>
+          </div>
+        </div>
+
+        <div class="abstract-text">
+          <p>
+            We propose Drift-Resistant Navigation World Model, a generative model for long-horizon navigation prediction that mitigates both perceptual drift and geometric drift. Existing rollout-based world models recursively feed generated frames into later predictions, causing visual errors to accumulate, while their futures can also deviate from the agent's intended motion. DR-NWM reframes prediction as anchor-guided rollout: it first predicts sparse future anchors, then generates intermediate frames conditioned on both the past context and future anchor. These anchors also support bidirectional epipolar guidance, giving the model geometric cues without requiring explicit 3D supervision. Across navigation benchmarks, this produces future observations that remain more stable over long horizons and more faithful to the geometry induced by the action sequence.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="videos" class="section">
+      <div class="wrap">
+        <div class="gallery-head">
+          <div>
+            <h2>Qualitative GIF Gallery</h2>
+            <p class="gallery-meta">Scrubbable side-by-side comparisons from the provided supplementary GIFs, shown over a 16s timeline at 4fps.</p>
+          </div>
+          <div class="dataset-nav" aria-label="Dataset filter">
+            <button type="button" class="active" data-group="all">All</button>
+            <button type="button" data-group="recon">RECON</button>
+            <button type="button" data-group="sacson">HuRoN</button>
+            <button type="button" data-group="scand">SCAND</button>
+            <button type="button" data-group="tartan-drive">TartanDrive</button>
+          </div>
+        </div>
+
+        <div class="legend" aria-label="Comparison legend">
+          <span class="baseline">Left: NWM</span>
+          <span class="ours">Right: Ours</span>
+        </div>
+
+        <div id="video-results" class="sample-grid" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const groups = [
+      {
+        id: "recon",
+        title: "RECON",
+        root: "recon",
+        samples: [
+          ["id_19.gif", "RECON 01", "NWM develops a wall-like late artifact while ours keeps the house and yard structure."],
+          ["id_16.gif", "RECON 02", "NWM is dominated by large occluders in later frames while ours remains coherent."],
+          ["id_147.gif", "RECON 03", "NWM overexposes and distorts the scene late in the sequence."],
+          ["id_20.gif", "RECON 04", "NWM drifts into dark wall-like content before recovering to a different view."],
+          ["id_143.gif", "RECON 05", "NWM jumps to a close object view at the end while ours stays on the scene."]
+        ]
+      },
+      {
+        id: "sacson",
+        title: "HuRoN",
+        root: "sacson",
+        samples: [
+          ["id_74.gif", "HuRoN 01", "NWM changes to unrelated blue-door and floor artifacts late in the sequence."],
+          ["id_88.gif", "HuRoN 02", "NWM collapses into close wall and cabinet views while ours preserves the corridor."],
+          ["id_90.gif", "HuRoN 03", "NWM becomes an occluded close-up near the end while ours keeps a hallway view."],
+          ["id_25.gif", "HuRoN 04", "NWM accumulates close clutter and object intrusions late in the video."],
+          ["id_76.gif", "HuRoN 05", "NWM drifts to wall and person close-ups while ours remains corridor-like."]
+        ]
+      },
+      {
+        id: "scand",
+        title: "SCAND",
+        root: "scand",
+        samples: [
+          ["id_101.gif", "SCAND 01", "NWM accumulates close pedestrian intrusions in the late frames."],
+          ["id_9.gif", "SCAND 02", "NWM becomes shadowy and unstable while ours keeps a plausible sidewalk."],
+          ["id_18.gif", "SCAND 03", "NWM final frames are dominated by a blue occluder."],
+          ["id_42.gif", "SCAND 04", "NWM jumps toward car and tent-like occlusions late in the sequence."],
+          ["id_65.gif", "SCAND 05", "NWM drifts into dark shadows and close pedestrians while ours preserves the path."]
+        ]
+      },
+      {
+        id: "tartan-drive",
+        title: "TartanDrive",
+        root: "tartan_drive",
+        samples: [
+          ["id_123.gif", "TartanDrive 01", "NWM is swallowed by foliage near the end while ours keeps the road visible."],
+          ["id_68.gif", "TartanDrive 02", "NWM overexposes and veers into bushes while ours preserves the trajectory."],
+          ["id_30.gif", "TartanDrive 03", "NWM turns into close grass and foliage in later frames."],
+          ["id_41.gif", "TartanDrive 04", "NWM collapses into vegetation while ours keeps a navigable path."],
+          ["id_143.gif", "TartanDrive 05", "NWM drifts into high grass while ours keeps the road structure."]
+        ]
+      }
+    ];
+
+    const videoResults = document.querySelector("#video-results");
+    const filterButtons = [...document.querySelectorAll("[data-group]")];
+    const SCRUB_DURATION = 16;
+    const SCRUB_FPS = 4;
+    const PLAYBACK_SPEED = 2;
+    const SCRUB_FRAMES = SCRUB_DURATION * SCRUB_FPS;
+    const SPRITE_COLS = 8;
+    const SPRITE_ROWS = Math.ceil(SCRUB_FRAMES / SPRITE_COLS);
+    const playbackTimers = new WeakMap();
+
+    function updateScrubFrame(card, time) {
+      const frame = Math.max(0, Math.min(SCRUB_FRAMES - 1, Math.round(time * SCRUB_FPS)));
+      const col = frame % SPRITE_COLS;
+      const row = Math.floor(frame / SPRITE_COLS);
+      const x = SPRITE_COLS === 1 ? 0 : (col / (SPRITE_COLS - 1)) * 100;
+      const y = SPRITE_ROWS === 1 ? 0 : (row / (SPRITE_ROWS - 1)) * 100;
+      const frameEl = card.querySelector(".scrub-frame");
+      const readout = card.querySelector(".time-readout");
+
+      frameEl.style.backgroundPosition = `${x}% ${y}%`;
+      readout.textContent = `${Number(time).toFixed(2)}s`;
+    }
+
+    function stopPlayback(card) {
+      const timer = playbackTimers.get(card);
+      if (timer) {
+        window.clearInterval(timer);
+        playbackTimers.delete(card);
+      }
+    }
+
+    function playSample(card) {
+      stopPlayback(card);
+      const slider = card.querySelector(".scrub-slider");
+      let time = Number(slider.value);
+
+      if (time >= SCRUB_DURATION) {
+        time = 0;
+        slider.value = time;
+        updateScrubFrame(card, time);
+      }
+
+      const timer = window.setInterval(() => {
+        time = Math.min(SCRUB_DURATION, Number(slider.value) + (PLAYBACK_SPEED / SCRUB_FPS));
+        slider.value = time.toFixed(2);
+        updateScrubFrame(card, time);
+
+        if (time >= SCRUB_DURATION) {
+          stopPlayback(card);
+        }
+      }, 1000 / SCRUB_FPS);
+
+      playbackTimers.set(card, timer);
+    }
+
+    function resetSample(card) {
+      stopPlayback(card);
+      const slider = card.querySelector(".scrub-slider");
+      slider.value = 0;
+      updateScrubFrame(card, 0);
+    }
+
+    function sampleCard(group, sample) {
+      const [file, title, note] = sample;
+      const base = file.replace(".gif", "");
+      const spriteSrc = `assets/sprites/${group.root}/${base}.jpg`;
+      const card = document.createElement("article");
+      card.className = "sample-card";
+      card.dataset.group = group.id;
+      card.innerHTML = `
+        <div class="sample-media" aria-label="${group.title} ${file}: NWM on the left, ours on the right">
+          <div class="scrub-frame" role="img" aria-label="${group.title} ${title} frame preview" style="background-image: url('${spriteSrc}')"></div>
+          <div class="split-line" aria-hidden="true"></div>
+          <div class="side-labels" aria-hidden="true">
+            <span>NWM</span>
+            <span>Ours</span>
+          </div>
+        </div>
+        <div class="scrub-controls">
+          <button class="scrub-button play-button" type="button">Play</button>
+          <button class="scrub-button pause-button" type="button">Pause</button>
+          <button class="scrub-button reset-button" type="button">Reset</button>
+          <span class="scrub-label">0s</span>
+          <input class="scrub-slider" type="range" min="0" max="${SCRUB_DURATION}" step="0.25" value="0" aria-label="Scrub ${title} time">
+          <span class="time-readout">0.00s</span>
+        </div>
+        <div class="sample-caption">
+          <div class="sample-title">
+            <strong>${title}</strong>
+            <span>${note}</span>
+          </div>
+        </div>
+      `;
+      const slider = card.querySelector(".scrub-slider");
+      slider.addEventListener("input", () => {
+        stopPlayback(card);
+        updateScrubFrame(card, slider.value);
+      });
+      card.querySelector(".play-button").addEventListener("click", () => playSample(card));
+      card.querySelector(".pause-button").addEventListener("click", () => stopPlayback(card));
+      card.querySelector(".reset-button").addEventListener("click", () => resetSample(card));
+      updateScrubFrame(card, 0);
+      return card;
+    }
+
+    function renderSamples(activeGroup = "all") {
+      [...document.querySelectorAll(".sample-card")].forEach((card) => stopPlayback(card));
+      videoResults.innerHTML = "";
+      groups
+        .filter((group) => activeGroup === "all" || group.id === activeGroup)
+        .forEach((group) => group.samples.forEach((sample) => videoResults.appendChild(sampleCard(group, sample))));
+    }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        filterButtons.forEach((item) => item.classList.toggle("active", item === button));
+        renderSamples(button.dataset.group);
+      });
+    });
+
+    renderSamples();
+
+    const navLinks = [...document.querySelectorAll(".nav a")];
+    const sections = navLinks
+      .map((link) => document.querySelector(link.getAttribute("href")))
+      .filter(Boolean);
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+      if (!visible) return;
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`);
+      });
+    }, { rootMargin: "-22% 0px -65% 0px", threshold: [0.1, 0.35, 0.6] });
+
+    sections.forEach((section) => observer.observe(section));
+  </script>
+</body>
+</html>
